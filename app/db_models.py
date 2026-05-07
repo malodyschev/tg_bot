@@ -37,18 +37,6 @@ class MessageOrm(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
-class SummaryRequestOrm(Base):
-    __tablename__ = "summary_requests"
-    __table_args__ = (
-        Index("idx_summary_requests_chat_created", "chat_id", "created_at"),
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    user_id: Mapped[int | None] = mapped_column(BigInteger)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
 class CommandUsageOrm(Base):
     __tablename__ = "command_usages"
     __table_args__ = (

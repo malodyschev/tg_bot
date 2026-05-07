@@ -14,7 +14,6 @@ from app.services.summary import SummaryService
 router = Router()
 
 DEFAULT_LIMIT = 100
-LIMITED_COMMANDS = {"drama", "top_words", "who", "lore"}
 LIMIT_EXEMPT_USER_ID = 693505334
 LIMIT_EXHAUSTED_MESSAGE = "Отдыхай в таверне сынок лимит исчерпан😎"
 ACCESS_DENIED_MESSAGE = "500 рублей на карту мне и даю доступ"
@@ -180,6 +179,31 @@ async def top_words(
         lines.append(f"{index}. {word} - {count}")
 
     await message.answer("\n".join(lines))
+
+
+@router.message(Command("promt"))
+async def promt(
+    message: Message,
+    summary_service: SummaryService,
+    command_usage_repository: CommandUsageRepository,
+    settings: Settings,
+) -> None:
+    if not _check_chat_access(message, settings):
+        await message.answer(ACCESS_DENIED_MESSAGE)
+        return
+
+    user_prompt = _command_argument(message.text).strip()
+    if not user_prompt:
+        await message.answer('Используй формат: /promt "твой запрос"')
+        return
+
+    user_prompt = user_prompt.strip('"').strip("'").strip()
+    if not await _check_limit(message, command_usage_repository, "promt"):
+        return
+
+    status_message = await message.answer("Ща спрошу у железки...")
+    answer = await summary_service.custom_prompt_chat(message.chat.id, user_prompt)
+    await _send_answer(message, status_message, answer)
 
 
 def _check_chat_access(message: Message, settings: Settings) -> bool:

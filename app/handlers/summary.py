@@ -5,20 +5,21 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from app.config import Settings
-from app.repositories.summary_requests import SummaryRequestRepository
+from app.repositories.command_usages import CommandUsageRepository
 from app.services.summary import SummaryService
 
 router = Router()
 
 LIMIT_EXEMPT_USER_ID = 693505334
-SUMMARY_REQUESTS_PER_DAY = 1
+DEFAULT_LIMIT = 100
+LIMIT_EXHAUSTED_MESSAGE = "Отдыхай в таверне сынок лимит исчерпан😎"
 
 
 @router.message(Command("summary"))
 async def summarize(
     message: Message,
     summary_service: SummaryService,
-    summary_request_repository: SummaryRequestRepository,
+    command_usage_repository: CommandUsageRepository,
     settings: Settings,
 ) -> None:
     if (
@@ -28,9 +29,9 @@ async def summarize(
         await message.answer("500 рублей на карту мне и даю доступ")
         return
 
-    requested_limit = _parse_limit(message.text)
+    requested_limit = _parse_optional_limit(message.text)
     if requested_limit is None:
-        await message.answer("Используй формат: /summary 100")
+        await message.answer("Используй формат: /summary или /summary 100")
         return
 
     if requested_limit <= 0:
@@ -44,7 +45,7 @@ async def summarize(
         )
         return
 
-    if not await _check_limit(message, summary_request_repository):
+    if not await _check_limit(message, command_usage_repository):
         return
 
     status_message = await message.answer("Анализирую хуйню, которую тут понаписали...")
@@ -68,36 +69,37 @@ async def summarize(
 
 async def _check_limit(
     message: Message,
-    summary_request_repository: SummaryRequestRepository,
+    command_usage_repository: CommandUsageRepository,
 ) -> bool:
     user = message.from_user
     if user is None:
-        await message.answer("Вы кого задудосить решили дети шлюх ебаных")
+        await message.answer(LIMIT_EXHAUSTED_MESSAGE)
         return False
 
     if user.id == LIMIT_EXEMPT_USER_ID:
         return True
 
-    is_allowed = await summary_request_repository.try_register(
+    is_allowed = await command_usage_repository.try_register(
         chat_id=message.chat.id,
         user_id=user.id,
-        max_requests=SUMMARY_REQUESTS_PER_DAY,
+        command="summary",
+        max_requests=1,
         window=timedelta(hours=24),
     )
     if not is_allowed:
-        await message.answer("Вы кого задудосить решили дети шлюх ебаных")
+        await message.answer(LIMIT_EXHAUSTED_MESSAGE)
         return False
 
     return True
 
 
-def _parse_limit(text: str | None) -> int | None:
+def _parse_optional_limit(text: str | None) -> int | None:
     if not text:
-        return None
+        return DEFAULT_LIMIT
 
     parts = text.split(maxsplit=1)
     if len(parts) != 2:
-        return None
+        return DEFAULT_LIMIT
 
     try:
         return int(parts[1].replace("_", ""))

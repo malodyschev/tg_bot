@@ -62,6 +62,14 @@ class SummaryService:
         prompt = self._build_lore_search_prompt(query, messages)
         return await self._llm_client.summarize(prompt)
 
+    async def custom_prompt_chat(self, chat_id: int, user_prompt: str) -> str:
+        messages = await self._get_latest_messages(chat_id, requested_limit=100)
+        if not messages:
+            return "Пока нет сохраненных сообщений для запроса."
+
+        prompt = self._build_custom_prompt(user_prompt, messages)
+        return await self._llm_client.summarize(prompt)
+
     @property
     def max_summary_messages(self) -> int:
         return self._max_summary_messages
@@ -199,6 +207,31 @@ class SummaryService:
   темы и ограничения. Просто объясняй лор по найденным сообщениям.
 
 Найденные сообщения:
+{self._format_messages(messages)}
+""".strip()
+
+    def _build_custom_prompt(
+        self,
+        user_prompt: str,
+        messages: list[StoredMessage],
+    ) -> str:
+        return f"""
+Выполни пользовательский запрос по последним сообщениям Telegram-чата.
+
+Пользовательский запрос:
+{user_prompt}
+
+Правила:
+- Отвечай на русском языке.
+- Используй только сообщения ниже, не выдумывай факты.
+- Если запрос просит выбрать, сравнить, объяснить или найти что-то в чате,
+  сделай это по смыслу переписки.
+- Стиль можно держать разговорный и неформальный.
+- Не используй Markdown: никаких #, **жирного**, таблиц и декоративной разметки.
+- Не пиши дисклеймеры про языковые модели, собственное мнение, чувствительные
+  темы и ограничения. Просто отвечай по сообщениям.
+
+Сообщения:
 {self._format_messages(messages)}
 """.strip()
 

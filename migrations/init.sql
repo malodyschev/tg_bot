@@ -13,16 +13,6 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS idx_messages_chat_message_id
 ON messages(chat_id, telegram_message_id);
 
-CREATE TABLE IF NOT EXISTS summary_requests (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    chat_id INTEGER NOT NULL,
-    user_id INTEGER,
-    created_at TEXT NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_summary_requests_chat_created
-ON summary_requests(chat_id, created_at);
-
 CREATE TABLE IF NOT EXISTS command_usages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     chat_id INTEGER NOT NULL,
