@@ -1,0 +1,6 @@
+aiogram>=3.4,<4
+aiosqlite>=0.20,<1
+gigachat>=0.2,<1
+pydantic>=2.0,<3
+python-dotenv>=1.0,<2
+SQLAlchemy>=2.0,<3
