@@ -9,6 +9,7 @@ from aiogram.types import Message
 from app.config import Settings
 from app.repositories.command_usages import CommandUsageRepository
 from app.repositories.messages import MessageRepository
+from app.services.funpay import FunPayError, FunPayService, FunPayStats
 from app.services.summary import SummaryService
 
 router = Router()
@@ -206,11 +207,59 @@ async def promt(
     await _send_answer(message, status_message, answer)
 
 
+@router.message(Command("den"))
+async def den(
+    message: Message,
+    funpay_service: FunPayService,
+    command_usage_repository: CommandUsageRepository,
+    settings: Settings,
+) -> None:
+    if not _check_chat_access(message, settings):
+        await message.answer(ACCESS_DENIED_MESSAGE)
+        return
+
+    if not await _check_limit(message, command_usage_repository, "den"):
+        return
+
+    status_message = await message.answer("Считаю миллионы Денчика на FunPay...")
+
+    try:
+        stats = await funpay_service.collect_stats()
+    except FunPayError as error:
+        await status_message.edit_text(f"Не смог забрать отзывы FunPay: {error}.")
+        raise
+    except Exception:
+        await status_message.edit_text(
+            "Не смог забрать отзывы FunPay. Проверь FUNPAY_COOKIE и FUNPAY_START_URL."
+        )
+        raise
+
+    await status_message.edit_text(_format_funpay_stats(stats))
+
+
 def _check_chat_access(message: Message, settings: Settings) -> bool:
     return (
         not settings.allowed_chat_ids
         or message.chat.id in settings.allowed_chat_ids
     )
+
+
+def _format_funpay_stats(stats: FunPayStats) -> str:
+    lines = [
+        "Статистика фанпея Денчика:",
+        f"Количество отзывов: {stats.total_reviews}",
+        f"Нафармлено всего: {stats.total_sum_eur} €",
+        f"Последние {len(stats.recent_reviews)} отзывов: {stats.recent_sum_eur} €",
+    ]
+
+    if stats.recent_reviews:
+        lines.append("")
+        for index, review in enumerate(stats.recent_reviews, start=1):
+            lines.append(f"{index}. {review.detail} — {review.price_eur} €")
+            if review.text:
+                lines.append(f"   Отзыв: {review.text}")
+
+    return "\n".join(lines)
 
 
 async def _check_limit(

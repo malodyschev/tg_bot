@@ -23,3 +23,11 @@ CREATE TABLE IF NOT EXISTS command_usages (
 
 CREATE INDEX IF NOT EXISTS idx_command_usages_chat_user_command_created
 ON command_usages(chat_id, user_id, command, created_at);
+
+CREATE TABLE IF NOT EXISTS funpay_seen_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fingerprint TEXT NOT NULL UNIQUE,
+    detail TEXT NOT NULL,
+    price_eur TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);

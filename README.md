@@ -24,6 +24,7 @@ python3 main.py
 
 ```env
 TELEGRAM_BOT_TOKEN=...
+TELEGRAM_PROXY_URL=
 GIGACHAT_CREDENTIALS=...
 GIGACHAT_SCOPE=GIGACHAT_API_PERS
 GIGACHAT_MODEL=GigaChat
@@ -32,14 +33,33 @@ DATABASE_PATH=bot.sqlite3
 MAX_MESSAGES_PER_CHAT=3000
 MAX_SUMMARY_MESSAGES=500
 ALLOWED_CHAT_IDS=-1003464847907
+DIPLOMA_REMINDER_CHAT_ID=-1003464847907
+DIPLOMA_REMINDER_TEXT=@iaroslav_komkov как там с дипломом?
+DIPLOMA_REMINDER_INTERVAL_HOURS=12
+FUNPAY_START_URL=https://funpay.com/lots/offer?id=67921289
+FUNPAY_COOKIE=golden_key=...; PHPSESSID=...
+FUNPAY_REVIEWS_URL=https://funpay.com/users/reviews
+FUNPAY_RECENT_REVIEWS_COUNT=5
+FUNPAY_MAX_PAGES=200
+FUNPAY_MONITOR_CHAT_ID=-1003464847907
+FUNPAY_MONITOR_INTERVAL_MINUTES=30
 ```
 
 - `TELEGRAM_BOT_TOKEN` - токен из BotFather.
+- `TELEGRAM_PROXY_URL` - прокси для Telegram API. Если не нужен, оставь пустым.
 - `GIGACHAT_CREDENTIALS` - Authorization Key от GigaChat.
 - `GIGACHAT_VERIFY_SSL_CERTS=false` - удобно для MVP, чтобы не упереться в сертификаты.
 - `MAX_MESSAGES_PER_CHAT=3000` - сколько сообщений хранить на каждый чат.
 - `MAX_SUMMARY_MESSAGES=500` - максимум сообщений за один запрос к нейронке.
 - `ALLOWED_CHAT_IDS` - список разрешённых чатов через запятую.
+- `DIPLOMA_REMINDER_CHAT_ID` - чат для напоминания про диплом. Если пустой, напоминание выключено.
+- `DIPLOMA_REMINDER_TEXT` - текст напоминания.
+- `DIPLOMA_REMINDER_INTERVAL_HOURS=12` - интервал отправки в часах.
+- `FUNPAY_START_URL` - страница оффера/профиля продавца, откуда открываются отзывы.
+- `FUNPAY_COOKIE` - cookie-строка FunPay. Секрет, не коммить.
+- `FUNPAY_RECENT_REVIEWS_COUNT=5` - сколько последних отзывов показывать в `/den`.
+- `FUNPAY_MONITOR_CHAT_ID` - чат, куда отправлять новые отзывы. Если пустой, мониторинг выключен.
+- `FUNPAY_MONITOR_INTERVAL_MINUTES=30` - как часто проверять новые отзывы.
 
 Если `ALLOWED_CHAT_IDS` пустой, команды работают во всех чатах.
 
@@ -95,6 +115,10 @@ ALLOWED_CHAT_IDS=-1003464847907
 
 Выполняет твой кастомный запрос по последним 100 сообщениям чата.
 
+`/den`
+
+Считает оборот продавца FunPay по отзывам, показывает последние 5 отзывов и сумму по ним.
+
 ## Лимиты
 
 Для обычных участников лимит персональный:
@@ -111,6 +135,7 @@ ALLOWED_CHAT_IDS=-1003464847907
 - `/who`
 - `/lore`
 - `/promt`
+- `/den`
 
 Пользователь с Telegram ID `693505334` лимитом не ограничен.
 

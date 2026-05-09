@@ -54,3 +54,16 @@ class CommandUsageOrm(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     command: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class FunPaySeenReviewOrm(Base):
+    __tablename__ = "funpay_seen_reviews"
+    __table_args__ = (
+        UniqueConstraint("fingerprint", name="uq_funpay_seen_reviews_fingerprint"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    detail: Mapped[str] = mapped_column(Text, nullable=False)
+    price_eur: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
