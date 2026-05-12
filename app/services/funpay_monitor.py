@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from decimal import Decimal
 
 from aiogram import Bot
 
@@ -35,7 +36,7 @@ class FunPayMonitor:
             return
 
         logger.info(
-            "FunPay monitor started: chat_id=%s interval_minutes=%s",
+            "FunPay daily report monitor started: chat_id=%s interval_minutes=%s",
             chat_id,
             self._settings.funpay_monitor_interval_minutes,
         )
@@ -45,66 +46,123 @@ class FunPayMonitor:
 
     async def _check_once(self, chat_id: int) -> None:
         try:
-            logger.info("FunPay monitor check started")
-            recent_reviews = await self._funpay_service.collect_recent_reviews()
+            logger.info("FunPay daily report check started")
+            stats = await self._funpay_service.collect_stats()
+            reviews = stats.all_reviews
             seen_fingerprints = await self._seen_review_repository.get_seen_fingerprints()
+            should_backfill_history = (
+                0
+                < len(seen_fingerprints)
+                <= self._settings.funpay_recent_reviews_count
+                < len(reviews)
+            )
             migrated_legacy_fingerprints = {
                 review.legacy_fingerprint
-                for review in recent_reviews
+                for review in reviews
                 if review.legacy_fingerprint in seen_fingerprints
                 and review.fingerprint not in seen_fingerprints
             }
             new_reviews = [
                 review
-                for review in recent_reviews
+                for review in reviews
                 if review.fingerprint not in seen_fingerprints
                 and review.legacy_fingerprint not in seen_fingerprints
             ]
             logger.info(
-                "FunPay monitor check parsed: recent=%s seen=%s new=%s legacy_migrated=%s",
-                len(recent_reviews),
+                "FunPay daily report parsed: fetched=%s seen=%s new=%s legacy_migrated=%s total=%s",
+                len(reviews),
                 len(seen_fingerprints),
                 len(new_reviews),
                 len(migrated_legacy_fingerprints),
+                stats.total_sum_eur,
             )
 
-            await self._seen_review_repository.remember_many(recent_reviews)
+            await self._seen_review_repository.remember_many(reviews)
             await self._seen_review_repository.forget_fingerprints(
                 migrated_legacy_fingerprints
             )
 
             if not seen_fingerprints:
                 logger.info(
-                    "FunPay monitor initialized with current reviews: remembered=%s",
-                    len(recent_reviews),
+                    "FunPay daily report initialized with current reviews: remembered=%s",
+                    len(reviews),
                 )
                 return
 
-            for review in reversed(new_reviews):
+            if should_backfill_history:
                 logger.info(
-                    "FunPay monitor sending new review: detail=%s price=%s has_text=%s",
-                    review.detail,
-                    review.price_eur,
-                    bool(review.text),
+                    "FunPay daily report backfilled full history without sending: remembered=%s previous_seen=%s",
+                    len(reviews),
+                    len(seen_fingerprints),
                 )
-                await self._bot.send_message(
-                    chat_id=chat_id,
-                    text=_format_new_review(review),
-                )
-            logger.info("FunPay monitor check finished")
+                return
+
+            report = _format_daily_report(new_reviews)
+            for chunk in _split_for_telegram(report):
+                await self._bot.send_message(chat_id=chat_id, text=chunk)
+            logger.info(
+                "FunPay daily report sent: new=%s sum=%s",
+                len(new_reviews),
+                _sum_reviews(new_reviews),
+            )
         except FunPayError:
             logger.exception("FunPay monitor failed")
         except Exception:
             logger.exception("Unexpected FunPay monitor failure")
 
 
-def _format_new_review(review: FunPayReview) -> str:
+def _format_daily_report(new_reviews: list[FunPayReview]) -> str:
+    total_sum = _sum_reviews(new_reviews)
     lines = [
-        "Новый отзыв на FunPay:",
-        review.detail,
-        f"Сумма: {review.price_eur} €",
+        "Дневной отчет FunPay:",
+        f"Новых отзывов: {len(new_reviews)}",
+        f"Сумма по новым отзывам: {total_sum} €",
     ]
-    if review.text:
-        lines.append(f"Отзыв: {review.text}")
+
+    if not new_reviews:
+        return "\n".join(lines)
+
+    lines.append("")
+    lines.append("Отзывы:")
+    for index, review in enumerate(reversed(new_reviews), start=1):
+        lines.append(f"{index}. {review.detail} — {review.price_eur} €")
+        if review.text:
+            lines.append(f"   Текст: {review.text}")
 
     return "\n".join(lines)
+
+
+def _sum_reviews(reviews: list[FunPayReview]) -> Decimal:
+    return sum((review.price_eur for review in reviews), Decimal("0"))
+
+
+def _split_for_telegram(text: str, chunk_size: int = 3900) -> list[str]:
+    if len(text) <= chunk_size:
+        return [text]
+
+    chunks = []
+    current = ""
+    for line in text.split("\n"):
+        if len(line) > chunk_size:
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.extend(
+                line[index : index + chunk_size]
+                for index in range(0, len(line), chunk_size)
+            )
+            continue
+
+        candidate = f"{current}\n{line}".strip()
+        if len(candidate) <= chunk_size:
+            current = candidate
+            continue
+
+        if current:
+            chunks.append(current)
+        current = line
+
+    if current:
+        chunks.append(current)
+
+    return chunks

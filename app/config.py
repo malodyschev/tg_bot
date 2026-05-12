@@ -67,7 +67,7 @@ def load_settings() -> Settings:
         funpay_max_pages=int(os.getenv("FUNPAY_MAX_PAGES", "200")),
         funpay_monitor_chat_id=_optional_int(os.getenv("FUNPAY_MONITOR_CHAT_ID")),
         funpay_monitor_interval_minutes=float(
-            os.getenv("FUNPAY_MONITOR_INTERVAL_MINUTES", "30")
+            os.getenv("FUNPAY_MONITOR_INTERVAL_MINUTES", "1440")
         ),
     )
 

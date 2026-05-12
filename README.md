@@ -42,7 +42,7 @@ FUNPAY_REVIEWS_URL=https://funpay.com/users/reviews
 FUNPAY_RECENT_REVIEWS_COUNT=5
 FUNPAY_MAX_PAGES=200
 FUNPAY_MONITOR_CHAT_ID=-1003464847907
-FUNPAY_MONITOR_INTERVAL_MINUTES=30
+FUNPAY_MONITOR_INTERVAL_MINUTES=1440
 ```
 
 - `TELEGRAM_BOT_TOKEN` - токен из BotFather.
@@ -58,8 +58,8 @@ FUNPAY_MONITOR_INTERVAL_MINUTES=30
 - `FUNPAY_START_URL` - страница оффера/профиля продавца, откуда открываются отзывы.
 - `FUNPAY_COOKIE` - cookie-строка FunPay. Секрет, не коммить.
 - `FUNPAY_RECENT_REVIEWS_COUNT=5` - сколько последних отзывов показывать в `/den`.
-- `FUNPAY_MONITOR_CHAT_ID` - чат, куда отправлять новые отзывы. Если пустой, мониторинг выключен.
-- `FUNPAY_MONITOR_INTERVAL_MINUTES=30` - как часто проверять новые отзывы.
+- `FUNPAY_MONITOR_CHAT_ID` - чат, куда отправлять дневной отчет по новым отзывам. Если пустой, мониторинг выключен.
+- `FUNPAY_MONITOR_INTERVAL_MINUTES=1440` - как часто отправлять отчет. `1440` минут = 24 часа.
 
 Если `ALLOWED_CHAT_IDS` пустой, команды работают во всех чатах.
 

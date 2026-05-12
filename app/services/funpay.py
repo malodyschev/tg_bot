@@ -41,6 +41,7 @@ class FunPayReview:
 class FunPayStats:
     total_sum_eur: Decimal
     total_reviews: int
+    all_reviews: list[FunPayReview]
     recent_reviews: list[FunPayReview]
 
     @property
@@ -168,6 +169,7 @@ class FunPayService:
         return FunPayStats(
             total_sum_eur=total_sum,
             total_reviews=len(all_reviews),
+            all_reviews=all_reviews,
             recent_reviews=recent_reviews,
         )
 
