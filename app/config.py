@@ -26,7 +26,7 @@ class Settings:
     funpay_recent_reviews_count: int
     funpay_max_pages: int
     funpay_monitor_chat_id: int | None
-    funpay_monitor_interval_minutes: float
+    funpay_report_interval_hours: float
 
 
 def load_settings() -> Settings:
@@ -66,8 +66,8 @@ def load_settings() -> Settings:
         ),
         funpay_max_pages=int(os.getenv("FUNPAY_MAX_PAGES", "200")),
         funpay_monitor_chat_id=_optional_int(os.getenv("FUNPAY_MONITOR_CHAT_ID")),
-        funpay_monitor_interval_minutes=float(
-            os.getenv("FUNPAY_MONITOR_INTERVAL_MINUTES", "1440")
+        funpay_report_interval_hours=float(
+            os.getenv("FUNPAY_REPORT_INTERVAL_HOURS", "24")
         ),
     )
 

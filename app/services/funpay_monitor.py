@@ -30,15 +30,15 @@ class FunPayMonitor:
             logger.info("FunPay monitor disabled: FUNPAY_MONITOR_CHAT_ID is not set")
             return
 
-        interval_seconds = self._settings.funpay_monitor_interval_minutes * 60
+        interval_seconds = self._settings.funpay_report_interval_hours * 60 * 60
         if interval_seconds <= 0:
-            logger.warning("FunPay monitor interval must be positive")
+            logger.warning("FunPay report interval must be positive")
             return
 
         logger.info(
-            "FunPay daily report monitor started: chat_id=%s interval_minutes=%s",
+            "FunPay daily report monitor started: chat_id=%s interval_hours=%s",
             chat_id,
-            self._settings.funpay_monitor_interval_minutes,
+            self._settings.funpay_report_interval_hours,
         )
         while True:
             await self._check_once(chat_id)
