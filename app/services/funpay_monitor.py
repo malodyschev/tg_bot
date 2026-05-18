@@ -40,9 +40,65 @@ class FunPayMonitor:
             chat_id,
             self._settings.funpay_report_interval_hours,
         )
+
+        await self._startup_sync()
+
         while True:
-            await self._check_once(chat_id)
             await asyncio.sleep(interval_seconds)
+            await self._check_once(chat_id)
+
+    async def _startup_sync(self) -> None:
+        try:
+            logger.info("FunPay startup sync started")
+            stats = await self._funpay_service.collect_stats()
+            reviews = stats.all_reviews
+            seen_fingerprints = await self._seen_review_repository.get_seen_fingerprints()
+            should_backfill_history = (
+                0
+                < len(seen_fingerprints)
+                <= self._settings.funpay_recent_reviews_count
+                < len(reviews)
+            )
+            migrated_legacy_fingerprints = {
+                review.legacy_fingerprint
+                for review in reviews
+                if review.legacy_fingerprint in seen_fingerprints
+                and review.fingerprint not in seen_fingerprints
+            }
+
+            if not seen_fingerprints or should_backfill_history:
+                await self._seen_review_repository.remember_many(reviews)
+                await self._seen_review_repository.forget_fingerprints(
+                    migrated_legacy_fingerprints
+                )
+                logger.info(
+                    "FunPay startup sync backfilled reviews without sending: remembered=%s previous_seen=%s legacy_migrated=%s",
+                    len(reviews),
+                    len(seen_fingerprints),
+                    len(migrated_legacy_fingerprints),
+                )
+                return
+
+            if migrated_legacy_fingerprints:
+                await self._seen_review_repository.remember_many(reviews)
+                await self._seen_review_repository.forget_fingerprints(
+                    migrated_legacy_fingerprints
+                )
+                logger.info(
+                    "FunPay startup sync migrated legacy fingerprints without sending: legacy_migrated=%s",
+                    len(migrated_legacy_fingerprints),
+                )
+                return
+
+            logger.info(
+                "FunPay startup sync skipped: seen=%s fetched=%s",
+                len(seen_fingerprints),
+                len(reviews),
+            )
+        except FunPayError:
+            logger.exception("FunPay startup sync failed")
+        except Exception:
+            logger.exception("Unexpected FunPay startup sync failure")
 
     async def _check_once(self, chat_id: int) -> None:
         try:

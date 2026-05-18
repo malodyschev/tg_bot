@@ -50,8 +50,6 @@ async def run_bot() -> None:
     dispatcher.include_router(fun_router)
     dispatcher.include_router(messages_router)
 
-    reminder = DiplomaReminder(bot, settings)
-    reminder_task = asyncio.create_task(reminder.run())
     funpay_monitor = FunPayMonitor(
         bot=bot,
         settings=settings,
@@ -63,10 +61,8 @@ async def run_bot() -> None:
     try:
         await dispatcher.start_polling(bot)
     finally:
-        reminder_task.cancel()
         funpay_monitor_task.cancel()
         await asyncio.gather(
-            reminder_task,
             funpay_monitor_task,
             return_exceptions=True,
         )
